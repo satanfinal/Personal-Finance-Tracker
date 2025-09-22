@@ -1,19 +1,9 @@
-// const arrow = document.querySelector('.arrow');
-
-// arrow.addEventListener('click', (event) => {
-//   event.preventDefault();
-//   const targetElement = document.querySelector(event.target.getAttribute('#tracker'));
-//   targetElement.scrollIntoView({ behavior: 'smooth' });
-// });
-
-// Get the table-part element and the transaction-table
 const tablePart = document.querySelector(".table-part");
 const transactionTable = document.getElementById("transaction-table");
 
-// Function to check the number of entries and apply scrollbar if needed
 function checkTableScroll() {
-  const rowCount = transactionTable.rows.length - 1; // Exclude the header row
-  const maxRowCount = 10; // Set the desired maximum number of entries
+  const rowCount = transactionTable.rows.length - 1; 
+  const maxRowCount = 10; 
 
   if (rowCount > maxRowCount) {
     tablePart.classList.add("scrollable");
@@ -22,23 +12,18 @@ function checkTableScroll() {
   }
 }
 
-// Call the function initially and whenever there is a change in the table
 checkTableScroll();
 
-// Add an event listener for changes in the table
 const observer = new MutationObserver(checkTableScroll);
 observer.observe(transactionTable, {
   childList: true,
   subtree: true,
 });
 
-// Initialize an empty array to store the transactions
 let transactions = [];
 
-// Variable to store the current transaction being edited
 let editedTransaction = null;
 
-// Function to add a new transaction
 function addTransaction() {
   const descriptionInput = document.getElementById("description");
   const amountInput = document.getElementById("amount");
@@ -190,7 +175,7 @@ function formatCurrency(amount, currencyCode) {
   const decimalSeparators = {
     USD: ".",
     EUR: ",",
-    INR: ",",
+    VND: ",",
   };
 
   const symbol = currencySymbols[currencyCode] || "";
