@@ -1,70 +1,42 @@
-import express from "express";
-import Transaction from "../models/Transaction.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import express from "express"
+import authMiddleware from "../middleware/authMiddleware.js"
+import Transaction from "../models/Transaction.js"
 
-const router = express.Router();
+const router = express.Router()
 
 router.get("/", authMiddleware, async (req, res) => {
-  try {
-    const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
-    res.json(transactions);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 })
+  res.json(transactions)
+})
 
 router.post("/", authMiddleware, async (req, res) => {
-  const { type, category, amount, notes } = req.body;
-  if (!type || !category || !amount) {
-    return res.status(400).json({ message: "Type, category, and amount are required" });
-  }
-
-  try {
-    const transaction = await Transaction.create({
-      user: req.user.id,
-      type,
-      category,
-      amount,
-      notes,
-    });
-    res.status(201).json(transaction);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  const { description, amount, type, currency, date, category, receiptUrl } = req.body
+  const transaction = await Transaction.create({
+    user: req.user.id, description, amount, type, currency, date, category, receiptUrl
+  })
+  const io = req.app.get("io")
+  io.to(req.user.id).emit("transaction_added", transaction)
+  res.json(transaction)
+})
 
 router.put("/:id", authMiddleware, async (req, res) => {
-  const { type, category, amount, notes } = req.body;
-  try {
-    const transaction = await Transaction.findById(req.params.id);
-    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
-    if (transaction.user.toString() !== req.user.id)
-      return res.status(401).json({ message: "Unauthorized" });
-
-    transaction.type = type || transaction.type;
-    transaction.category = category || transaction.category;
-    transaction.amount = amount || transaction.amount;
-    transaction.notes = notes || transaction.notes;
-
-    const updatedTransaction = await transaction.save();
-    res.json(updatedTransaction);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  const transaction = await Transaction.findOneAndUpdate(
+    { _id: req.params.id, user: req.user.id },
+    req.body,
+    { new: true }
+  )
+  if (!transaction) return res.status(404).json({ msg: "Transaction not found" })
+  const io = req.app.get("io")
+  io.to(req.user.id).emit("transaction_updated", transaction)
+  res.json(transaction)
+})
 
 router.delete("/:id", authMiddleware, async (req, res) => {
-  try {
-    const transaction = await Transaction.findById(req.params.id);
-    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
-    if (transaction.user.toString() !== req.user.id)
-      return res.status(401).json({ message: "Unauthorized" });
+  const transaction = await Transaction.findOneAndDelete({ _id: req.params.id, user: req.user.id })
+  if (!transaction) return res.status(404).json({ msg: "Transaction not found" })
+  const io = req.app.get("io")
+  io.to(req.user.id).emit("transaction_deleted", req.params.id)
+  res.json({ msg: "Deleted" })
+})
 
-    await transaction.remove();
-    res.json({ message: "Deleted" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-export default router;
+export default router
